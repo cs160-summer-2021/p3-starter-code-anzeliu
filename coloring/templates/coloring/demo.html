@@ -5,7 +5,8 @@
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   	<title>P3 Coloring</title>
-
+	  <link rel="stylesheet" type="text/css" href="{% static '/css/main.css' %}" />
+	  <link rel="stylesheet" type="text/css" href="{% static 'coloring/vendors/bootstrap/css/bootstrap.css' %}" />
 	<script type="text/javascript" src="{% static 'coloring/vendors/jquery/jquery-3.3.1.min.js' %}"></script>
 	<script type="text/javascript" src="{% static 'coloring/vendors/paper/paper-full.min.js' %}"></script>
 
@@ -38,8 +39,10 @@
 	</style>
 
 	<script type="text/javascript" canvas="canvas">
+		var pencil, fill;
 		window.onload = function() {
 			var canvas = document.getElementById('myCanvas');
+
 
 			// coloring page
 			var mandala = {
@@ -55,16 +58,34 @@
 				$container: $('#color-palette')
 			}
 
+			
+
+			
+
 			function myCustomInteraction() {
 				var tool = new paper.Tool();
 
 				tool.onMouseDown = function (event) {
-				    var hit = mandala.item.hitTest(event.point, { tolerance: 10, fill: true });
-				    if (hit) {
-				    		// Color pallette keeps track of the full history of colors, though we
-				    		// only color in with the most-recent color.
-				        hit.item.fillColor = cp.history[cp.history.length - 1];
-				    }
+				    // var hit = mandala.item.hitTest(event.point, { tolerance: 10, fill: true });
+				    // if (hit) {
+				    // 		// Color pallette keeps track of the full history of colors, though we
+				    // 		// only color in with the most-recent color.
+				    //     hit.item.fillColor = cp.history[cp.history.length - 1];
+				    // }
+				}
+				tool.onMouseDrag = function (event) {
+					randoCircle.position = event.point;
+					path = new Path();
+					stamp = new Path.Circle(event.point, 30);
+					stamp.fillColor = new Color({
+					gradient: {
+						stops: [a, b],
+						radial: true,
+					},
+						origin: event.point,
+						destination: randoCircle.bounds.topCenter
+					}
+				);
 				}
 			}
 
@@ -97,19 +118,57 @@
 
 			function init(custom){
 				paper.setup(canvas);
-				getColorsCreatePalette();
+				with(paper) {
+					var point1 = new Point(100, 100);
+					var point2 = new Point(100, 0);
 
-				paper.project.importSVG(mandala.filePath, function(item) {
-					mandala.item = item._children["design-freepik"];
-				    paper.project.insertLayer(0,mandala.item);
+					var a = new Color(1,0,0,1);
+					var b = new Color(0,1,0,1);
 
-				    if (custom) {
-				    	myCustomInteraction();
-				    } else {
-				    	myGradientInteraction();
-				    }
+					var myPath = new Path();
+					myPath.strokeColor = "purple"
 
-				});
+					myPath.add(point1, point2);
+					myPath.add(new Point(200, 100));
+					myPath.add(point1);
+					// myPath.fillColor = "green";
+					pencil = new Tool();
+					var paths = [];
+					var picture = new Group();
+					var curPath = null;
+
+
+					pencil.onMouseDown = function(event) {
+						paths.push(new Path());
+						curPath = paths[paths.length - 1];
+						curPath.strokeColor = "purple";
+						
+						console.log("hi");
+					}
+					pencil.onMouseDrag = function(event) {
+						curPath.add(event.point);
+					}
+					pencil.onMouseUp = function(event) {
+						curPath.closed = true;
+						curPath.fill = true;
+						curPath.fillColor = "red";
+						curPath.fillColor.alpha = .0000001; //This is the best workaround I've ever devised. -Nicholas
+						picture.addChild(curPath);
+						console.log(picture.children)
+					}
+
+					fill = new Tool();
+					fill.onMouseDown = function(event) {
+						console.log("clicked fill");
+						var hit = picture.hitTest(event.point, { tolerance: 10, segments: true, stroke: true, fill: true});
+						if (hit) {
+							hit.item.fillColor = "black";
+						} else {
+							console.log("no hit")
+						}
+					}
+
+				}
 			}
 
 			// Set up the mandala interactivity.
@@ -118,7 +177,8 @@
 	</script>
 </head>
 <body>
-
+	<a href="#" onclick="pencil.activate();">Pencil</a>
+    <a href="#" onclick="fill.activate();">fill</a>
 	<canvas id="myCanvas" width="750px" height="750px"></canvas>
 	<div id="color-palette"></div>
 </body>
